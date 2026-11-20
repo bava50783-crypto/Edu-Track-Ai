@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  --surface-canvas: #F7F8FC;
+  --surface-card: #FFFFFF;
+  --surface-tint: #EEF3FF;
+  --surface-ai: #F2EEFF;
+  --ink-primary: #141936;
+  --ink-secondary: #454654;
+  --ink-muted: #81879C;
+  --accent-indigo: #414CCE;
+  --accent-indigo-bright: #5B67E8;
+  --accent-lavender: #5C4BC3;
+}
+
+html,
+body {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  background-color: #F7F8FC;
+  color: #141936;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.card-elevated {
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.75);
+  box-shadow: 0 1px 3px 0 rgba(30, 35, 64, 0.04), 0 1px 2px -1px rgba(30, 35, 64, 0.02);
+}
+
+.card-elevated-hover:hover {
+  box-shadow: 0 10px 25px -5px rgba(91, 103, 232, 0.08), 0 8px 10px -6px rgba(30, 35, 64, 0.04);
+}

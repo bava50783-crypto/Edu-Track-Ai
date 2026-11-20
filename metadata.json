@@ -1,0 +1,6 @@
+{
+  "name": "EduTrack AI",
+  "description": "Intelligent Academic OS for students and faculty featuring adaptive study planning, assignment tracking, AI document synthesis, and academic copilot.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
