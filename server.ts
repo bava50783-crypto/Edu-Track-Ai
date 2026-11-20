@@ -5,10 +5,7 @@ import * as dotenv from 'dotenv';
 import { ThinkingLevel, Type } from '@google/genai';
 import { requireAuth, type AuthRequest } from './src/middleware/auth.ts';
 import { getGeminiClient } from './src/lib/gemini.ts';
-<<<<<<< HEAD
 import { checkDbConnection } from './src/db/index.ts';
-=======
->>>>>>> daa60db0deb6cc4182499fc087d4e9f119aec75d
 import {
   addChatMessageRecord,
   createAnnouncementRecord,
@@ -38,7 +35,6 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'edutrack-ai' });
 });
 
-<<<<<<< HEAD
 // Database & Supabase connectivity status endpoint
 app.get('/api/db/health', async (_req, res) => {
   try {
@@ -67,8 +63,6 @@ app.get('/api/db/health', async (_req, res) => {
   }
 });
 
-=======
->>>>>>> daa60db0deb6cc4182499fc087d4e9f119aec75d
 // =========================================================================
 // AUTHENTICATED CLOUD SQL POSTGRESQL ENDPOINTS
 // =========================================================================
@@ -283,7 +277,7 @@ app.post('/api/ai/summarize', async (req, res) => {
       config: {
         systemInstruction:
           'Return structured JSON matching the synthesis report format with executive overview, 3 key concepts, 2 formulas, 3 revision checklist items, and 1 high-yield exam takeaway.',
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -301,6 +295,7 @@ app.post('/api/ai/summarize', async (req, res) => {
                   description: { type: Type.STRING },
                   section: { type: Type.STRING },
                 },
+                required: ['kicker', 'title', 'description', 'section'],
               },
             },
             formulas: {
@@ -312,6 +307,7 @@ app.post('/api/ai/summarize', async (req, res) => {
                   latex: { type: Type.STRING },
                   description: { type: Type.STRING },
                 },
+                required: ['title', 'latex', 'description'],
               },
             },
             checklist: {
@@ -324,10 +320,20 @@ app.post('/api/ai/summarize', async (req, res) => {
                   detail: { type: Type.STRING },
                   checked: { type: Type.BOOLEAN },
                 },
+                required: ['id', 'title', 'detail', 'checked'],
               },
             },
             examTakeaway: { type: Type.STRING },
           },
+          required: [
+            'confidence',
+            'readingTime',
+            'executiveOverview',
+            'keyConcepts',
+            'formulas',
+            'checklist',
+            'examTakeaway',
+          ],
         },
       },
     });
@@ -335,105 +341,32 @@ app.post('/api/ai/summarize', async (req, res) => {
     res.json(parsed);
   } catch (error: any) {
     console.error('POST /api/ai/summarize error:', error);
-    res.status(500).json({ error: error.message || 'Document synthesis failed' });
+    res.status(500).json({ error: error.message || 'Document summarization failed' });
   }
 });
 
-app.post('/api/ai/doc-qa', async (req, res) => {
+app.post('/api/ai/generate-hint', async (req, res) => {
   try {
     const ai = getGeminiClient();
-    const { fileName, rawContent, question } = req.body;
+    const { title, description, rubric } = req.body;
     const response = await ai.models.generateContent({
       model: 'gemini-4-hydrogen',
-      contents: `Document: ${fileName}\nContent:\n${rawContent}\n\nStudent Inquiry: ${question}`,
+      contents: `Generate an intelligent academic hint and common edge-case warning for this assignment.\nTitle: ${title}\nDescription: ${description}\nRubric: ${JSON.stringify(rubric || [])}`,
       config: {
         systemInstruction:
-          'You are an academic document tutor. Ground your answer in the provided course document and format clearly with numbered points.',
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
-      },
-    });
-    res.json({ answer: response.text ?? 'No answer generated.' });
-  } catch (error: any) {
-    console.error('POST /api/ai/doc-qa error:', error);
-    res.status(500).json({ error: error.message || 'Document Q&A failed' });
-  }
-});
-
-app.post('/api/ai/chat', async (req, res) => {
-  try {
-    const ai = getGeminiClient();
-    const { message, history, courseScope, deepReasoning } = req.body;
-    const scopeStr = Array.isArray(courseScope) && courseScope.length > 0 ? courseScope.join(', ') : 'All Courses';
-    const historyContext = Array.isArray(history)
-      ? history.slice(-6).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n')
-      : '';
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-4-hydrogen',
-      contents: `Active Course Scope: ${scopeStr}\nRecent Conversation:\n${historyContext}\n\nLatest Student Prompt: ${message}`,
-      config: {
-        systemInstruction:
-          'You are EduTrack Copilot, an expert STEM and Humanities university tutor. Provide clear, rigorous, step-by-step academic explanations. If code is helpful, put it cleanly in the codeSnippet field. If there is a classic exam or implementation pitfall, put a concise warning in gotchaTip.',
-        thinkingConfig: {
-          thinkingLevel: deepReasoning ? ThinkingLevel.HIGH : ThinkingLevel.LOW,
-        },
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            content: { type: Type.STRING },
-            codeSnippet: { type: Type.STRING },
-            gotchaTip: { type: Type.STRING },
-          },
-        },
-      },
-    });
-    const parsed = JSON.parse((response.text ?? '{}').trim());
-    res.json({
-      content: parsed.content || 'Here is your explanation.',
-      codeSnippet: parsed.codeSnippet || null,
-      gotchaTip: parsed.gotchaTip || null,
-    });
-  } catch (error: any) {
-    console.error('POST /api/ai/chat error:', error);
-    res.status(500).json({ error: error.message || 'Copilot request failed' });
-  }
-});
-
-app.post('/api/ai/diagnostic', async (req, res) => {
-  try {
-    const ai = getGeminiClient();
-    const { topic } = req.body;
-    const response = await ai.models.generateContent({
-      model: 'gemini-4-hydrogen',
-      contents: `Create a 5-question 5-minute micro-diagnostic quiz for CS301 students on: ${topic || 'Raft Leader Election split-vote jitter and term invariants'}.`,
-      config: {
-        systemInstruction: 'Return JSON array of 5 concise diagnostic multiple-choice questions with correct answer and 1-sentence rationale.',
+          'Return a single high-yield pedagogical hint (max 2 sentences) addressing common student failure modes for this assignment.',
         thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              question: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              answerIndex: { type: Type.INTEGER },
-              rationale: { type: Type.STRING },
-            },
-          },
-        },
       },
     });
-    const questions = JSON.parse((response.text ?? '[]').trim());
-    res.json({ questions });
+    res.json({ hint: response.text?.trim() || 'Review foundational invariants before submission.' });
   } catch (error: any) {
-    console.error('POST /api/ai/diagnostic error:', error);
-    res.status(500).json({ error: error.message || 'Failed to generate diagnostic' });
+    console.error('POST /api/ai/generate-hint error:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate hint' });
   }
 });
 
-async function startServer() {
+// Vite SSR / Static serving
+async function setupVite() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -441,16 +374,18 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(process.cwd(), 'dist');
+    const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      res.sendFile(path.resolve(distPath, 'index.html'));
     });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`EduTrack AI server running on http://0.0.0.0:${PORT}`);
+    console.log(`EduTrack AI server running on http://localhost:${PORT}`);
   });
 }
 
-startServer();
+setupVite().catch((err) => {
+  console.error('Failed to start server:', err);
+});
