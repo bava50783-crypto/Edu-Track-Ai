@@ -5,7 +5,10 @@ import * as dotenv from 'dotenv';
 import { ThinkingLevel, Type } from '@google/genai';
 import { requireAuth, type AuthRequest } from './src/middleware/auth.ts';
 import { getGeminiClient } from './src/lib/gemini.ts';
+<<<<<<< HEAD
 import { checkDbConnection } from './src/db/index.ts';
+=======
+>>>>>>> daa60db0deb6cc4182499fc087d4e9f119aec75d
 import {
   addChatMessageRecord,
   createAnnouncementRecord,
@@ -35,6 +38,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'edutrack-ai' });
 });
 
+<<<<<<< HEAD
 // Database & Supabase connectivity status endpoint
 app.get('/api/db/health', async (_req, res) => {
   try {
@@ -63,6 +67,8 @@ app.get('/api/db/health', async (_req, res) => {
   }
 });
 
+=======
+>>>>>>> daa60db0deb6cc4182499fc087d4e9f119aec75d
 // =========================================================================
 // AUTHENTICATED CLOUD SQL POSTGRESQL ENDPOINTS
 // =========================================================================

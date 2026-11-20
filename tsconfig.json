@@ -4,6 +4,10 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",
+<<<<<<< HEAD
+=======
+    "types": ["vite/client"],
+>>>>>>> daa60db0deb6cc4182499fc087d4e9f119aec75d
     "lib": [
       "ES2022",
       "DOM",
@@ -16,7 +20,10 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "jsx": "react-jsx",
+<<<<<<< HEAD
     "baseUrl": ".",
+=======
+>>>>>>> daa60db0deb6cc4182499fc087d4e9f119aec75d
     "paths": {
       "@/*": [
         "./*"
@@ -25,6 +32,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
+<<<<<<< HEAD
   "include": [
     "src",
     "server.ts",
@@ -35,4 +43,7 @@
     "node_modules",
     "supabase"
   ]
+=======
+  "exclude": ["dist"]
+>>>>>>> daa60db0deb6cc4182499fc087d4e9f119aec75d
 }
