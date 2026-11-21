@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
-  AlertTriangle,
   BookOpen,
   Check,
   Copy,
   Download,
+  Lightbulb,
   MessageSquare,
   Plus,
   RefreshCw,
@@ -14,6 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useWorkspace } from '../context/WorkspaceContext.tsx';
+import { MarkdownMessage } from './MarkdownMessage.tsx';
 
 export function AIAssistantView() {
   const {
@@ -324,8 +325,8 @@ export function AIAssistantView() {
                       <span className="text-[#81879C]">{msg.timeLabel}</span>
                     </div>
 
-                    <div className="rounded-2xl bg-[#F7F8FC] border border-slate-200/70 p-4 sm:p-5 space-y-4 text-sm text-[#141936] leading-relaxed whitespace-pre-wrap">
-                      {msg.content}
+                    <div className="rounded-2xl bg-[#F7F8FC] border border-slate-200/70 p-4 sm:p-5 space-y-4 text-sm text-[#141936] leading-relaxed">
+                      <MarkdownMessage content={msg.content} />
 
                       {/* Embedded State Machine Quorum Flow on the seeded Deep Reasoning message */}
                       {msg.id === 3 && (
@@ -384,10 +385,10 @@ export function AIAssistantView() {
                         </div>
                       )}
 
-                      {/* Gotcha Callout */}
+                      {/* Study Tip Callout */}
                       {msg.gotchaTip && (
-                        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-950">
-                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="p-3.5 rounded-xl bg-[#EEF3FF] border border-indigo-200 flex items-start gap-2.5 text-xs text-[#141936]">
+                          <Lightbulb className="w-4 h-4 text-[#414CCE] shrink-0 mt-0.5" />
                           <span>{msg.gotchaTip}</span>
                         </div>
                       )}

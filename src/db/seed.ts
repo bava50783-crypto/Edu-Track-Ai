@@ -1,4 +1,4 @@
-import { count } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import { db } from './index.ts';
 import {
   announcements,
@@ -6,17 +6,23 @@ import {
   chatMessages,
   chatSessions,
   courses,
+  customerResponses,
+  customers,
   discussionThreads,
   facultySchedule,
+  studentAcademicRecords,
   studyDocuments,
   studyGoals,
   waiverRequests,
 } from './schema.ts';
 import {
+  INITIAL_ACADEMIC_RECORDS,
   INITIAL_ANNOUNCEMENTS,
   INITIAL_ASSIGNMENTS,
   INITIAL_CHAT_SESSIONS,
   INITIAL_COURSES,
+  INITIAL_CUSTOMER_RESPONSES,
+  INITIAL_CUSTOMERS,
   INITIAL_DISCUSSIONS,
   INITIAL_DOCUMENTS,
   INITIAL_FACULTY_SCHEDULE,
@@ -145,6 +151,7 @@ export async function ensureSeedData(userUid: string) {
               timeLabel: m.timeLabel,
               codeSnippet: m.codeSnippet ?? null,
               gotchaTip: m.gotchaTip ?? null,
+              navActionsJson: m.navActionsJson ?? [],
             }))
           );
         }
@@ -205,6 +212,70 @@ export async function ensureSeedData(userUid: string) {
           timeRange: f.timeRange,
           location: f.location,
           badgeText: f.badgeText,
+        }))
+      );
+    }
+
+    const [{ value: custCount }] = await db.select({ value: count() }).from(customers);
+    if (custCount === 0) {
+      const insertedCustomers = await db
+        .insert(customers)
+        .values(
+          INITIAL_CUSTOMERS.map((c) => ({
+            name: c.name,
+            email: c.email,
+            organization: c.organization,
+            roleTitle: c.roleTitle,
+            tier: c.tier,
+            phone: c.phone,
+            status: c.status,
+            userUid,
+          }))
+        )
+        .returning();
+
+      const idMap = new Map<number, number>();
+      INITIAL_CUSTOMERS.forEach((c, idx) => {
+        if (insertedCustomers[idx]) idMap.set(c.id, insertedCustomers[idx].id);
+      });
+
+      const [{ value: respCount }] = await db.select({ value: count() }).from(customerResponses);
+      if (respCount === 0) {
+        await db.insert(customerResponses).values(
+          INITIAL_CUSTOMER_RESPONSES.map((r) => ({
+            customerId: idMap.get(r.customerId) || insertedCustomers[0].id,
+            subject: r.subject,
+            queryText: r.queryText,
+            responseText: r.responseText,
+            status: r.status,
+            priority: r.priority,
+            channel: r.channel,
+            assignedAgent: r.assignedAgent,
+            historyJson: r.historyJson,
+            respondedAt: r.respondedAt ? new Date(r.respondedAt) : null,
+          }))
+        );
+      }
+    }
+
+    const [{ value: acadCount }] = await db
+      .select({ value: count() })
+      .from(studentAcademicRecords)
+      .where(eq(studentAcademicRecords.userUid, userUid));
+    if (acadCount === 0) {
+      await db.insert(studentAcademicRecords).values(
+        INITIAL_ACADEMIC_RECORDS.map((rec) => ({
+          userUid,
+          courseCode: rec.courseCode,
+          courseName: rec.courseName,
+          credits: rec.credits,
+          marksPct: rec.marksPct,
+          letterGrade: rec.letterGrade,
+          gradePointsTenths: rec.gradePointsTenths,
+          classesAttended: rec.classesAttended,
+          totalClasses: rec.totalClasses,
+          targetAttendancePct: rec.targetAttendancePct,
+          timetableSlot: rec.timetableSlot,
         }))
       );
     }

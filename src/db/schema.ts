@@ -33,6 +33,19 @@ export interface StudyDocSummary {
   examTakeaway: string;
 }
 
+export interface InteractionHistoryEntry {
+  id: string;
+  actor: string;
+  role: 'customer' | 'agent' | 'system';
+  message: string;
+  timestamp: string;
+}
+
+export interface ChatNavAction {
+  label: string;
+  nav: string;
+}
+
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   uid: text('uid').notNull().unique(),
@@ -65,8 +78,8 @@ export const assignments = pgTable('assignments', {
   description: text('description').notNull(),
   dueLabel: text('due_label').notNull(),
   countdownLabel: text('countdown_label').notNull(),
-  status: text('status').notNull().default('pending'), // pending | completed | overdue
-  priority: text('priority').notNull().default('Normal'), // Urgent | High | Medium | Normal
+  status: text('status').notNull().default('pending'),
+  priority: text('priority').notNull().default('Normal'),
   weightPct: integer('weight_pct').notNull().default(15),
   estimatedMins: integer('estimated_mins').notNull().default(60),
   graceRemaining: text('grace_remaining'),
@@ -85,7 +98,7 @@ export const announcements = pgTable('announcements', {
   authorRole: text('author_role').notNull(),
   title: text('title').notNull(),
   excerpt: text('excerpt').notNull(),
-  category: text('category').notNull(), // Urgent Alert | Facility Notice | Policy Advisory | Keynote Seminar | Infrastructure
+  category: text('category').notNull(),
   priority: text('priority').notNull().default('Normal'),
   audience: text('audience').notNull().default('All Enrolled Students'),
   courseRef: text('course_ref').notNull().default('GENERAL'),
@@ -137,20 +150,37 @@ export const chatMessages = pgTable('chat_messages', {
   sessionId: integer('session_id')
     .references(() => chatSessions.id, { onDelete: 'cascade' })
     .notNull(),
-  role: text('role').notNull(), // user | assistant
+  role: text('role').notNull(),
   content: text('content').notNull(),
   badgeLabel: text('badge_label'),
   timeLabel: text('time_label').notNull().default('Just now'),
   codeSnippet: text('code_snippet'),
   gotchaTip: text('gotcha_tip'),
+  navActionsJson: jsonb('nav_actions_json').$type<ChatNavAction[]>().notNull().default([]),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const studentAcademicRecords = pgTable('student_academic_records', {
+  id: serial('id').primaryKey(),
+  userUid: text('user_uid').notNull(),
+  courseCode: text('course_code').notNull(),
+  courseName: text('course_name').notNull(),
+  credits: integer('credits').notNull().default(4),
+  marksPct: integer('marks_pct').notNull().default(80),
+  letterGrade: text('letter_grade').notNull().default('B+'),
+  gradePointsTenths: integer('grade_points_tenths').notNull().default(33),
+  classesAttended: integer('classes_attended').notNull().default(20),
+  totalClasses: integer('total_classes').notNull().default(24),
+  targetAttendancePct: integer('target_attendance_pct').notNull().default(75),
+  timetableSlot: text('timetable_slot').notNull().default('Mon/Wed 10:00 AM'),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export const studyGoals = pgTable('study_goals', {
   id: serial('id').primaryKey(),
   userUid: text('user_uid').notNull().unique(),
   targetHours: integer('target_hours').notNull().default(25),
-  loggedTenths: integer('logged_tenths').notNull().default(185), // 18.5 hrs
+  loggedTenths: integer('logged_tenths').notNull().default(185),
   dailyHoursJson: jsonb('daily_hours_json').$type<number[]>().notNull().default([3.2, 4.1, 4.0, 2.8, 1.6, 1.4, 1.4]),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -162,7 +192,7 @@ export const waiverRequests = pgTable('waiver_requests', {
   assignmentTitle: text('assignment_title').notNull(),
   reason: text('reason').notNull(),
   requestedHours: integer('requested_hours').notNull().default(48),
-  status: text('status').notNull().default('pending'), // pending | approved | rejected
+  status: text('status').notNull().default('pending'),
   receivedLabel: text('received_label').notNull().default('Received 2h ago'),
   createdAt: timestamp('created_at').defaultNow(),
 });
@@ -191,6 +221,37 @@ export const facultySchedule = pgTable('faculty_schedule', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const customers = pgTable('customers', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  organization: text('organization').notNull(),
+  roleTitle: text('role_title').notNull().default('Academic Coordinator'),
+  tier: text('tier').notNull().default('Enterprise'), // Enterprise | Department | Campus
+  phone: text('phone').notNull().default(''),
+  status: text('status').notNull().default('Active'), // Active | Onboarding | Attention
+  userUid: text('user_uid'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const customerResponses = pgTable('customer_responses', {
+  id: serial('id').primaryKey(),
+  customerId: integer('customer_id')
+    .references(() => customers.id, { onDelete: 'cascade' })
+    .notNull(),
+  subject: text('subject').notNull(),
+  queryText: text('query_text').notNull(),
+  responseText: text('response_text').notNull().default(''),
+  status: text('status').notNull().default('Pending'), // Pending | Responded | Resolved
+  priority: text('priority').notNull().default('Medium'), // High | Medium | Low
+  channel: text('channel').notNull().default('Support Portal'), // Support Portal | Email | Live Chat
+  assignedAgent: text('assigned_agent').notNull().default('Alex Vance'),
+  historyJson: jsonb('history_json').$type<InteractionHistoryEntry[]>().notNull().default([]),
+  respondedAt: timestamp('responded_at'),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const chatSessionsRelations = relations(chatSessions, ({ many }) => ({
   messages: many(chatMessages),
 }));
@@ -199,5 +260,16 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   session: one(chatSessions, {
     fields: [chatMessages.sessionId],
     references: [chatSessions.id],
+  }),
+}));
+
+export const customersRelations = relations(customers, ({ many }) => ({
+  responses: many(customerResponses),
+}));
+
+export const customerResponsesRelations = relations(customerResponses, ({ one }) => ({
+  customer: one(customers, {
+    fields: [customerResponses.customerId],
+    references: [customers.id],
   }),
 }));

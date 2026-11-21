@@ -1,29 +1,41 @@
 import React, { useState } from 'react';
 import {
+  BarChart3,
   Bell,
   BookOpen,
+  Bot,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   GraduationCap,
   LayoutGrid,
   LogOut,
   Megaphone,
   Menu,
+  MessageSquareText,
   Plus,
   Search,
   Settings,
-  Sparkles,
   UserCheck,
+  Users,
   X,
 } from 'lucide-react';
 import { useWorkspace, type NavTab } from '../context/WorkspaceContext.tsx';
-import { NewAssignmentModal, SettingsModal } from './Modals.tsx';
+import { NewAssignmentModal } from './Modals.tsx';
 
-const NAV_ITEMS: Array<{ id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+const PRIMARY_NAV: Array<{ id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
+  { id: 'customers', label: 'Customers', icon: Users },
+  { id: 'responses', label: 'Customer Responses', icon: MessageSquareText },
+  { id: 'chatbot', label: 'Chatbot', icon: Bot },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'settings', label: 'Settings', icon: Settings },
+];
+
+const ACADEMIC_NAV: Array<{ id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { id: 'assignments', label: 'Assignments', icon: ClipboardList },
   { id: 'announcements', label: 'Announcements', icon: Megaphone },
   { id: 'study-hub', label: 'Study Hub', icon: BookOpen },
-  { id: 'ai-assistant', label: 'AI Assistant', icon: Sparkles },
   { id: 'faculty', label: 'Faculty View', icon: GraduationCap },
 ];
 
@@ -38,157 +50,255 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     logout,
     announcements,
+    customerResponses,
     toastMessage,
+    toastType,
   } = useWorkspace();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [collapsedRail, setCollapsedRail] = useState(false);
   const [newAssignOpen, setNewAssignOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
   const unreadCount = announcements.filter((a) => !a.isRead).length;
+  const pendingResponsesCount = customerResponses.filter((r) => r.status === 'Pending').length;
+
+  const isNavActive = (id: NavTab) => activeNav === id || (id === 'chatbot' && activeNav === 'ai-assistant');
+
+  const renderNavButton = (
+    item: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> },
+    compact: boolean,
+    onDone?: () => void
+  ) => {
+    const Icon = item.icon;
+    const active = isNavActive(item.id);
+    const badge = item.id === 'responses' && pendingResponsesCount > 0 ? pendingResponsesCount : null;
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => {
+          setActiveNav(item.id);
+          onDone?.();
+        }}
+        title={compact ? item.label : undefined}
+        className={`w-full flex items-center ${
+          compact ? 'justify-center px-0' : 'justify-between px-3.5'
+        } h-10 rounded-xl text-sm font-semibold transition-all whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[#414CCE] ${
+          active
+            ? 'bg-gradient-to-r from-[#5B67E8] to-[#414CCE] text-white shadow-[0_6px_16px_rgba(65,76,206,0.24)]'
+            : 'text-[#454654] hover:bg-[#F7F8FC] hover:text-[#141936]'
+        }`}
+      >
+        <span className="flex items-center gap-3 min-w-0">
+          <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-[#81879C]'}`} />
+          {!compact && <span className="truncate">{item.label}</span>}
+        </span>
+        {!compact && badge !== null && (
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
+              active ? 'bg-white/20 text-white' : 'bg-[#FFE9E9] text-[#BA1A1A]'
+            }`}
+          >
+            {badge}
+          </span>
+        )}
+      </button>
+    );
+  };
 
   return (
     <div className="min-h-screen flex bg-[#F7F8FC] text-[#141936]">
-      {/* Desktop Left Sidebar */}
-      <aside className="hidden lg:flex lg:w-[248px] lg:flex-col lg:fixed lg:inset-y-0 bg-white border-r border-slate-200/80 z-30">
-        <div className="px-5 pt-5 pb-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#414CCE] to-[#5C4BC3] flex items-center justify-center text-white font-bold shadow-sm">
-            <GraduationCap className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-[15px] font-bold tracking-tight text-[#141936]">
-              EduTrack <span className="text-[#414CCE]">AI</span>
+      {/* Desktop & Tablet Responsive Sidebar */}
+      <aside
+        className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 bg-white border-r border-slate-200/80 z-30 transition-all duration-200 ${
+          collapsedRail ? 'md:w-[76px]' : 'md:w-[252px]'
+        }`}
+      >
+        <div className={`px-4 pt-5 pb-3 flex items-center ${collapsedRail ? 'justify-center' : 'justify-between'}`}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#414CCE] to-[#5C4BC3] flex items-center justify-center text-white font-bold shadow-sm shrink-0">
+              <GraduationCap className="w-5 h-5" />
             </div>
-            <div className="text-[11px] font-medium text-[#81879C]">Academic OS</div>
+            {!collapsedRail && (
+              <div className="min-w-0">
+                <div className="text-[15px] font-bold tracking-tight text-[#141936] truncate">
+                  EduTrack <span className="text-[#414CCE]">AI</span>
+                </div>
+                <div className="text-[11px] font-medium text-[#81879C]">Customer &amp; Academic OS</div>
+              </div>
+            )}
           </div>
+          {!collapsedRail && (
+            <button
+              onClick={() => setCollapsedRail(true)}
+              className="p-1.5 rounded-lg text-[#81879C] hover:bg-[#F7F8FC] hover:text-[#141936]"
+              title="Collapse sidebar"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        <div className="px-5 pt-4 pb-2">
-          <div className="text-[10px] font-bold tracking-[0.08em] text-[#81879C] uppercase">
-            MAIN NAVIGATION
+        {collapsedRail && (
+          <div className="flex justify-center pb-2">
+            <button
+              onClick={() => setCollapsedRail(false)}
+              className="p-1.5 rounded-lg text-[#81879C] hover:bg-[#F7F8FC] hover:text-[#141936]"
+              title="Expand sidebar"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-5">
+          <div>
+            {!collapsedRail && (
+              <div className="px-2 pb-1.5 text-[10px] font-bold tracking-[0.08em] text-[#81879C] uppercase">
+                MAIN NAVIGATION
+              </div>
+            )}
+            <nav className="space-y-1">
+              {PRIMARY_NAV.map((item) => renderNavButton(item, collapsedRail))}
+            </nav>
+          </div>
+
+          <div>
+            {!collapsedRail && (
+              <div className="px-2 pb-1.5 text-[10px] font-bold tracking-[0.08em] text-[#81879C] uppercase">
+                ACADEMIC WORKSPACE
+              </div>
+            )}
+            <nav className="space-y-1">
+              {ACADEMIC_NAV.map((item) => renderNavButton(item, collapsedRail))}
+            </nav>
           </div>
         </div>
-
-        <nav className="flex-1 px-3 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = activeNav === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveNav(item.id)}
-                className={`w-full flex items-center gap-3 px-3.5 h-11 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-                  active
-                    ? 'bg-gradient-to-r from-[#5B67E8] to-[#414CCE] text-white shadow-[0_6px_16px_rgba(65,76,206,0.24)]'
-                    : 'text-[#454654] hover:bg-[#F7F8FC] hover:text-[#141936]'
-                }`}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-[#81879C]'}`} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
 
         {/* Bottom Profile Card */}
-        <div className="p-3.5 mt-auto">
-          <div className="rounded-2xl bg-[#F7F8FC] border border-slate-200/70 p-3.5">
-            <div className="flex items-center gap-2.5">
-              <img
-                src={
-                  user?.photoURL ||
-                  (activeNav === 'faculty'
-                    ? '/src/assets/images/avatar_aris_thorne_1795064440903.jpg'
-                    : '/src/assets/images/avatar_clara_vance_1795064440335.jpg')
-                }
-                alt={user?.displayName || 'Dr. Clara Vance'}
-                referrerPolicy="no-referrer"
-                className="w-9 h-9 rounded-full object-cover border border-indigo-200 shrink-0"
-              />
-              <div className="min-w-0">
-                <div className="text-xs font-bold text-[#141936] truncate">
-                  {user?.displayName || 'Dr. Clara Vance'}
-                </div>
-                <div className="inline-flex items-center px-2 py-0.5 mt-0.5 rounded-full bg-[#EEF3FF] text-[#414CCE] text-[10px] font-semibold">
-                  {activeNav === 'faculty' ? 'Faculty' : user ? 'Synced Account' : 'Faculty'}
+        <div className="p-3 mt-auto border-t border-slate-100">
+          {collapsedRail ? (
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => setActiveNav('settings')}
+                title={user?.displayName || 'Settings'}
+                className="w-10 h-10 rounded-full overflow-hidden border border-indigo-200"
+              >
+                <img
+                  src={user?.photoURL || '/src/assets/images/avatar_clara_vance_1795064440335.jpg'}
+                  alt={user?.displayName || 'Account'}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-2xl bg-[#F7F8FC] border border-slate-200/70 p-3">
+              <div className="flex items-center gap-2.5">
+                <img
+                  src={
+                    user?.photoURL ||
+                    (activeNav === 'faculty'
+                      ? '/src/assets/images/avatar_aris_thorne_1795064440903.jpg'
+                      : '/src/assets/images/avatar_clara_vance_1795064440335.jpg')
+                  }
+                  alt={user?.displayName || 'Dr. Clara Vance'}
+                  referrerPolicy="no-referrer"
+                  className="w-9 h-9 rounded-full object-cover border border-indigo-200 shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-[#141936] truncate">
+                    {user?.displayName || 'Dr. Clara Vance'}
+                  </div>
+                  <div className="inline-flex items-center px-2 py-0.5 mt-0.5 rounded-full bg-[#EEF3FF] text-[#414CCE] text-[10px] font-semibold">
+                    {user ? (dbSynced ? 'PostgreSQL Synced' : 'Signed In') : 'Workspace Admin'}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-3 pt-2.5 border-t border-slate-200/70 flex items-center justify-between text-xs font-semibold">
-              <button
-                onClick={() => setSettingsOpen(true)}
-                className="inline-flex items-center gap-1.5 text-[#454654] hover:text-[#141936]"
-              >
-                <Settings className="w-3.5 h-3.5" />
-                Settings
-              </button>
-              {user ? (
+              <div className="mt-2.5 pt-2 border-t border-slate-200/70 flex items-center justify-between text-xs font-semibold">
                 <button
-                  onClick={logout}
-                  className="inline-flex items-center gap-1 text-[#BA1A1A] hover:underline"
+                  onClick={() => setActiveNav('settings')}
+                  className="inline-flex items-center gap-1.5 text-[#454654] hover:text-[#141936]"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  Log out
+                  <Settings className="w-3.5 h-3.5" />
+                  Settings
                 </button>
-              ) : (
-                <button
-                  onClick={signInWithGoogle}
-                  className="inline-flex items-center gap-1 text-[#414CCE] hover:underline"
-                >
-                  Sign in
-                </button>
-              )}
+                {user ? (
+                  <button
+                    onClick={logout}
+                    className="inline-flex items-center gap-1 text-[#BA1A1A] hover:underline"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Log out
+                  </button>
+                ) : (
+                  <button
+                    onClick={signInWithGoogle}
+                    className="inline-flex items-center gap-1 text-[#414CCE] hover:underline"
+                  >
+                    Sign in
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </aside>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Slide-Over Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
+        <div className="fixed inset-0 z-50 md:hidden flex">
           <div className="fixed inset-0 bg-[#141936]/30" onClick={() => setMobileMenuOpen(false)} />
-          <div className="relative w-64 bg-white h-full p-4 flex flex-col z-10 shadow-xl">
+          <div className="relative w-72 bg-white h-full p-4 flex flex-col z-10 shadow-xl overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <span className="font-bold text-[#141936]">EduTrack AI</span>
-              <button onClick={() => setMobileMenuOpen(false)}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#414CCE] text-white flex items-center justify-center">
+                  <GraduationCap className="w-4 h-4" />
+                </div>
+                <span className="font-bold text-[#141936]">EduTrack AI</span>
+              </div>
+              <button onClick={() => setMobileMenuOpen(false)} className="p-1.5 rounded-lg hover:bg-[#F7F8FC]">
                 <X className="w-5 h-5 text-[#81879C]" />
               </button>
             </div>
-            <nav className="mt-4 space-y-1 flex-1">
-              {NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const active = activeNav === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setActiveNav(item.id);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3.5 h-11 rounded-xl text-sm font-semibold ${
-                      active ? 'bg-[#414CCE] text-white' : 'text-[#454654]'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
+
+            <div className="mt-4 space-y-5 flex-1">
+              <div>
+                <div className="px-2 pb-1.5 text-[10px] font-bold tracking-[0.08em] text-[#81879C] uppercase">
+                  MAIN NAVIGATION
+                </div>
+                <nav className="space-y-1">
+                  {PRIMARY_NAV.map((item) => renderNavButton(item, false, () => setMobileMenuOpen(false)))}
+                </nav>
+              </div>
+              <div>
+                <div className="px-2 pb-1.5 text-[10px] font-bold tracking-[0.08em] text-[#81879C] uppercase">
+                  ACADEMIC WORKSPACE
+                </div>
+                <nav className="space-y-1">
+                  {ACADEMIC_NAV.map((item) => renderNavButton(item, false, () => setMobileMenuOpen(false)))}
+                </nav>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Main Column */}
-      <div className="flex-1 lg:pl-[248px] flex flex-col min-w-0">
+      {/* Main Content Area */}
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ${
+          collapsedRail ? 'md:pl-[76px]' : 'md:pl-[252px]'
+        }`}
+      >
         {/* Top Bar */}
         <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1 max-w-xl">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-[#454654] hover:bg-[#F7F8FC]"
+              className="md:hidden p-2 rounded-lg text-[#454654] hover:bg-[#F7F8FC]"
+              aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -197,21 +307,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <input
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
-                placeholder="Search courses, students, topics, or resources..."
+                placeholder="Search customers, responses, courses, or resources..."
                 className="w-full h-10 pl-10 pr-4 rounded-xl bg-[#F7F8FC] border border-slate-200/70 text-sm text-[#141936] placeholder:text-[#81879C] focus:bg-white focus:border-[#5B67E8] focus:outline-none transition-colors"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
-            <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#EEF3FF] text-[#414CCE] text-xs font-semibold whitespace-nowrap">
+            <button
+              onClick={() => setActiveNav('responses')}
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#EEF3FF] text-[#414CCE] text-xs font-semibold whitespace-nowrap hover:bg-[#E0E7FF]"
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-[#414CCE]" />
-              Spring Term 2025
-            </span>
+              {pendingResponsesCount} Pending Responses
+            </button>
 
             <button
               onClick={() => setNewAssignOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#EEF3FF] text-[#414CCE] text-xs font-semibold hover:bg-[#E0E7FF] transition-colors whitespace-nowrap"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#EEF3FF] text-[#414CCE] text-xs font-semibold hover:bg-[#E0E7FF] transition-colors whitespace-nowrap"
             >
               <Plus className="w-3.5 h-3.5" />
               New Assignment
@@ -224,28 +337,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 title="Notifications"
               >
                 <Bell className="w-4 h-4" />
-                {unreadCount > 0 && (
+                {(unreadCount > 0 || pendingResponsesCount > 0) && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#BA1A1A]" />
                 )}
               </button>
               {notifOpen && (
                 <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white shadow-xl border border-slate-200 p-3 z-40">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <span className="text-xs font-bold text-[#141936]">Recent Notices ({unreadCount} unread)</span>
+                    <span className="text-xs font-bold text-[#141936]">
+                      Alerts ({unreadCount + pendingResponsesCount})
+                    </span>
                     <button
                       onClick={() => {
                         setNotifOpen(false);
-                        setActiveNav('announcements');
+                        setActiveNav('responses');
                       }}
                       className="text-xs font-semibold text-[#414CCE]"
                     >
-                      View all
+                      Open Responses
                     </button>
                   </div>
                   <div className="mt-2 space-y-2 max-h-60 overflow-y-auto">
-                    {announcements.slice(0, 3).map((a) => (
+                    {customerResponses
+                      .filter((r) => r.status === 'Pending')
+                      .slice(0, 2)
+                      .map((r) => (
+                        <button
+                          key={`resp-${r.id}`}
+                          onClick={() => {
+                            setNotifOpen(false);
+                            setActiveNav('responses');
+                          }}
+                          className="w-full text-left p-2 rounded-xl bg-[#FFF5F5]/70 hover:bg-[#FFE9E9]"
+                        >
+                          <div className="text-xs font-semibold text-[#BA1A1A] line-clamp-1">
+                            Pending Inquiry: {r.subject}
+                          </div>
+                          <div className="text-[11px] text-[#454654] mt-0.5">Priority: {r.priority}</div>
+                        </button>
+                      ))}
+                    {announcements.slice(0, 2).map((a) => (
                       <button
-                        key={a.id}
+                        key={`ann-${a.id}`}
                         onClick={() => {
                           setNotifOpen(false);
                           setActiveNav('announcements');
@@ -263,9 +396,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             {user ? (
               <button
-                onClick={() => setSettingsOpen(true)}
+                onClick={() => setActiveNav('settings')}
                 className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full bg-[#EEF3FF] text-[#414CCE] text-xs font-semibold hover:bg-[#E0E7FF]"
-                title={dbSynced ? 'Synced to Cloud SQL PostgreSQL' : 'Signed in'}
+                title={dbSynced ? 'Synced to PostgreSQL' : 'Signed in'}
               >
                 <img
                   src={user.photoURL || '/src/assets/images/avatar_alex_vance_1795064440676.jpg'}
@@ -286,17 +419,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 px-4 lg:px-8 py-6 pb-20 lg:pb-8 max-w-[1440px] w-full mx-auto">
+        {/* Page Viewport */}
+        <main className="flex-1 px-4 lg:px-8 py-6 pb-20 md:pb-8 max-w-[1440px] w-full mx-auto">
           {children}
         </main>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 h-16 bg-white border-t border-slate-200 flex items-center justify-around px-2 z-30">
-        {NAV_ITEMS.slice(0, 5).map((item) => {
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 h-16 bg-white border-t border-slate-200 flex items-center justify-around px-1 z-30">
+        {PRIMARY_NAV.slice(0, 5).map((item) => {
           const Icon = item.icon;
-          const active = activeNav === item.id;
+          const active = isNavActive(item.id);
           return (
             <button
               key={item.id}
@@ -306,7 +439,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }`}
             >
               <Icon className="w-4 h-4" />
-              <span>{item.label.split(' ')[0]}</span>
+              <span className="truncate max-w-[60px]">
+                {item.id === 'responses' ? 'Responses' : item.label}
+              </span>
             </button>
           );
         })}
@@ -314,13 +449,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-20 lg:bottom-6 right-6 z-50 px-4 py-3 rounded-xl bg-[#141936] text-white text-xs font-semibold shadow-xl">
+        <div
+          className={`fixed bottom-20 md:bottom-6 right-6 z-50 px-4 py-3 rounded-xl text-white text-xs font-semibold shadow-xl ${
+            toastType === 'error' ? 'bg-[#BA1A1A]' : 'bg-[#141936]'
+          }`}
+        >
           {toastMessage}
         </div>
       )}
 
       <NewAssignmentModal open={newAssignOpen} onClose={() => setNewAssignOpen(false)} />
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

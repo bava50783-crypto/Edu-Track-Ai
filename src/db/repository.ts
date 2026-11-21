@@ -1,4 +1,4 @@
-import { asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 import { db } from './index.ts';
 import {
   announcements,
@@ -6,11 +6,16 @@ import {
   chatMessages,
   chatSessions,
   courses,
+  customerResponses,
+  customers,
   discussionThreads,
   facultySchedule,
+  studentAcademicRecords,
   studyDocuments,
   studyGoals,
   waiverRequests,
+  type ChatNavAction,
+  type InteractionHistoryEntry,
   type RubricCriterion,
   type StudyDocSummary,
 } from './schema.ts';
@@ -31,6 +36,9 @@ export async function getWorkspaceData(userUid: string) {
       waiverList,
       discussionList,
       scheduleList,
+      customerList,
+      responseList,
+      academicRecordList,
     ] = await Promise.all([
       db.select().from(courses).orderBy(asc(courses.id)),
       db.select().from(assignments).orderBy(asc(assignments.id)),
@@ -42,6 +50,13 @@ export async function getWorkspaceData(userUid: string) {
       db.select().from(waiverRequests).orderBy(asc(waiverRequests.id)),
       db.select().from(discussionThreads).orderBy(asc(discussionThreads.id)),
       db.select().from(facultySchedule).orderBy(asc(facultySchedule.id)),
+      db.select().from(customers).orderBy(asc(customers.id)),
+      db.select().from(customerResponses).orderBy(desc(customerResponses.updatedAt), desc(customerResponses.id)),
+      db
+        .select()
+        .from(studentAcademicRecords)
+        .where(eq(studentAcademicRecords.userUid, userUid))
+        .orderBy(asc(studentAcademicRecords.id)),
     ]);
 
     let studyGoal = goalList[0];
@@ -81,6 +96,9 @@ export async function getWorkspaceData(userUid: string) {
       waivers: waiverList,
       discussions: discussionList,
       facultySchedule: scheduleList,
+      customers: customerList,
+      customerResponses: responseList,
+      academicRecords: academicRecordList,
     };
   } catch (error) {
     console.error('Database query failed in getWorkspaceData:', error);
@@ -279,6 +297,16 @@ export async function createChatSessionRecord(input: {
   }
 }
 
+export async function deleteChatSessionRecord(id: number) {
+  try {
+    await db.delete(chatSessions).where(eq(chatSessions.id, id));
+    return { ok: true };
+  } catch (error) {
+    console.error('Database query failed in deleteChatSessionRecord:', error);
+    throw new Error('Failed to delete chat session.', { cause: error });
+  }
+}
+
 export async function addChatMessageRecord(input: {
   sessionId: number;
   role: 'user' | 'assistant';
@@ -287,13 +315,48 @@ export async function addChatMessageRecord(input: {
   timeLabel: string;
   codeSnippet?: string | null;
   gotchaTip?: string | null;
+  navActionsJson?: ChatNavAction[];
 }) {
   try {
-    const [created] = await db.insert(chatMessages).values(input).returning();
+    const [created] = await db
+      .insert(chatMessages)
+      .values({
+        ...input,
+        navActionsJson: input.navActionsJson ?? [],
+      })
+      .returning();
     return created;
   } catch (error) {
     console.error('Database query failed in addChatMessageRecord:', error);
     throw new Error('Failed to save chat message.', { cause: error });
+  }
+}
+
+export async function clearChatSessionMessagesRecord(sessionId: number) {
+  try {
+    await db.delete(chatMessages).where(eq(chatMessages.sessionId, sessionId));
+    return { ok: true };
+  } catch (error) {
+    console.error('Database query failed in clearChatSessionMessagesRecord:', error);
+    throw new Error('Failed to clear chat session messages.', { cause: error });
+  }
+}
+
+export async function updateAcademicRecord(
+  id: number,
+  userUid: string,
+  updates: { classesAttended?: number; totalClasses?: number; marksPct?: number }
+) {
+  try {
+    const [updated] = await db
+      .update(studentAcademicRecords)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(studentAcademicRecords.id, id), eq(studentAcademicRecords.userUid, userUid)))
+      .returning();
+    return updated;
+  } catch (error) {
+    console.error('Database query failed in updateAcademicRecord:', error);
+    throw new Error('Failed to update academic record.', { cause: error });
   }
 }
 
@@ -342,5 +405,128 @@ export async function updateDiscussionRecord(
   } catch (error) {
     console.error('Database query failed in updateDiscussionRecord:', error);
     throw new Error('Failed to update discussion thread.', { cause: error });
+  }
+}
+
+// =========================================================================
+// CUSTOMERS & CUSTOMER RESPONSES CRUD
+// =========================================================================
+
+export async function createCustomerRecord(input: {
+  name: string;
+  email: string;
+  organization: string;
+  roleTitle: string;
+  tier: string;
+  phone: string;
+  status: string;
+  userUid: string;
+}) {
+  try {
+    const [created] = await db.insert(customers).values(input).returning();
+    return created;
+  } catch (error) {
+    console.error('Database query failed in createCustomerRecord:', error);
+    throw new Error('Failed to create customer record.', { cause: error });
+  }
+}
+
+export async function updateCustomerRecord(
+  id: number,
+  updates: {
+    name?: string;
+    email?: string;
+    organization?: string;
+    roleTitle?: string;
+    tier?: string;
+    phone?: string;
+    status?: string;
+  }
+) {
+  try {
+    const [updated] = await db.update(customers).set(updates).where(eq(customers.id, id)).returning();
+    return updated;
+  } catch (error) {
+    console.error('Database query failed in updateCustomerRecord:', error);
+    throw new Error('Failed to update customer record.', { cause: error });
+  }
+}
+
+export async function deleteCustomerRecord(id: number) {
+  try {
+    await db.delete(customers).where(eq(customers.id, id));
+    return { ok: true };
+  } catch (error) {
+    console.error('Database query failed in deleteCustomerRecord:', error);
+    throw new Error('Failed to delete customer record.', { cause: error });
+  }
+}
+
+export async function createCustomerResponseRecord(input: {
+  customerId: number;
+  subject: string;
+  queryText: string;
+  responseText: string;
+  status: string;
+  priority: string;
+  channel: string;
+  assignedAgent: string;
+  historyJson: InteractionHistoryEntry[];
+}) {
+  try {
+    const [created] = await db
+      .insert(customerResponses)
+      .values({
+        ...input,
+        respondedAt: input.responseText.trim() ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return created;
+  } catch (error) {
+    console.error('Database query failed in createCustomerResponseRecord:', error);
+    throw new Error('Failed to create customer response.', { cause: error });
+  }
+}
+
+export async function updateCustomerResponseRecord(
+  id: number,
+  updates: {
+    subject?: string;
+    queryText?: string;
+    responseText?: string;
+    status?: string;
+    priority?: string;
+    channel?: string;
+    assignedAgent?: string;
+    historyJson?: InteractionHistoryEntry[];
+  }
+) {
+  try {
+    const [updated] = await db
+      .update(customerResponses)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+        ...(updates.status === 'Responded' || updates.status === 'Resolved'
+          ? { respondedAt: new Date() }
+          : {}),
+      })
+      .where(eq(customerResponses.id, id))
+      .returning();
+    return updated;
+  } catch (error) {
+    console.error('Database query failed in updateCustomerResponseRecord:', error);
+    throw new Error('Failed to update customer response.', { cause: error });
+  }
+}
+
+export async function deleteCustomerResponseRecord(id: number) {
+  try {
+    await db.delete(customerResponses).where(eq(customerResponses.id, id));
+    return { ok: true };
+  } catch (error) {
+    console.error('Database query failed in deleteCustomerResponseRecord:', error);
+    throw new Error('Failed to delete customer response.', { cause: error });
   }
 }

@@ -1,4 +1,4 @@
-import type { RubricCriterion, StudyDocSummary } from '../db/schema.ts';
+import type { ChatNavAction, InteractionHistoryEntry, RubricCriterion, StudyDocSummary } from '../db/schema.ts';
 
 export interface CourseItem {
   id: number;
@@ -83,6 +83,7 @@ export interface ChatMessageItem {
   timeLabel: string;
   codeSnippet?: string | null;
   gotchaTip?: string | null;
+  navActionsJson?: ChatNavAction[];
 }
 
 export interface ChatSessionItem {
@@ -132,6 +133,293 @@ export interface FacultyScheduleItem {
   location: string;
   badgeText: string;
 }
+
+export interface CustomerItem {
+  id: number;
+  name: string;
+  email: string;
+  organization: string;
+  roleTitle: string;
+  tier: 'Enterprise' | 'Department' | 'Campus';
+  phone: string;
+  status: 'Active' | 'Onboarding' | 'Attention';
+  createdAt?: string | Date | null;
+}
+
+export interface CustomerResponseItem {
+  id: number;
+  customerId: number;
+  subject: string;
+  queryText: string;
+  responseText: string;
+  status: 'Pending' | 'Responded' | 'Resolved';
+  priority: 'High' | 'Medium' | 'Low';
+  channel: 'Support Portal' | 'Email' | 'Live Chat';
+  assignedAgent: string;
+  historyJson: InteractionHistoryEntry[];
+  respondedAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+  createdAt?: string | Date | null;
+}
+
+export interface StudentAcademicRecordItem {
+  id: number;
+  userUid?: string;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  marksPct: number;
+  letterGrade: string;
+  gradePointsTenths: number;
+  classesAttended: number;
+  totalClasses: number;
+  targetAttendancePct: number;
+  timetableSlot: string;
+}
+
+export const INITIAL_ACADEMIC_RECORDS: StudentAcademicRecordItem[] = [
+  {
+    id: 1,
+    courseCode: 'CS301',
+    courseName: 'Distributed Systems',
+    credits: 4,
+    marksPct: 78,
+    letterGrade: 'B+',
+    gradePointsTenths: 33,
+    classesAttended: 24,
+    totalClasses: 30,
+    targetAttendancePct: 75,
+    timetableSlot: 'Mon/Wed/Fri • 10:00 AM • Turing Hall 101',
+  },
+  {
+    id: 2,
+    courseCode: 'MATH240',
+    courseName: 'Linear Algebra',
+    credits: 4,
+    marksPct: 91,
+    letterGrade: 'A',
+    gradePointsTenths: 40,
+    classesAttended: 29,
+    totalClasses: 32,
+    targetAttendancePct: 75,
+    timetableSlot: 'Tue/Thu • 11:30 AM • Euler Auditorium 204',
+  },
+  {
+    id: 3,
+    courseCode: 'BIO110',
+    courseName: 'Cell Biology',
+    credits: 3,
+    marksPct: 66,
+    letterGrade: 'C+',
+    gradePointsTenths: 23,
+    classesAttended: 19,
+    totalClasses: 28,
+    targetAttendancePct: 75,
+    timetableSlot: 'Tue/Thu • 02:00 PM • Mendel Bio Lab 112',
+  },
+  {
+    id: 4,
+    courseCode: 'ENG205',
+    courseName: 'Technical Writing',
+    credits: 3,
+    marksPct: 94,
+    letterGrade: 'A',
+    gradePointsTenths: 40,
+    classesAttended: 23,
+    totalClasses: 24,
+    targetAttendancePct: 75,
+    timetableSlot: 'Mon/Wed • 03:30 PM • Humanities 305',
+  },
+  {
+    id: 5,
+    courseCode: 'CS450',
+    courseName: 'Cloud Native Microservices',
+    credits: 4,
+    marksPct: 96,
+    letterGrade: 'A+',
+    gradePointsTenths: 40,
+    classesAttended: 27,
+    totalClasses: 28,
+    targetAttendancePct: 75,
+    timetableSlot: 'Fri • 01:00 PM • Turing Hall 210',
+  },
+];
+
+export const INITIAL_CUSTOMERS: CustomerItem[] = [
+  {
+    id: 1,
+    name: 'Dr. Maya Lin',
+    email: 'm.lin@stanford-cs.edu',
+    organization: 'Pacific Institute of Technology',
+    roleTitle: 'Dean of Engineering',
+    tier: 'Enterprise',
+    phone: '+1 (650) 555-0142',
+    status: 'Active',
+    createdAt: '2026-11-10T09:15:00Z',
+  },
+  {
+    id: 2,
+    name: 'Marcus Sterling',
+    email: 'm.sterling@northbridge.edu',
+    organization: 'Northbridge University',
+    roleTitle: 'LMS Operations Director',
+    tier: 'Campus',
+    phone: '+1 (312) 555-0189',
+    status: 'Attention',
+    createdAt: '2026-11-12T14:30:00Z',
+  },
+  {
+    id: 3,
+    name: 'Priya Nair',
+    email: 'priya.nair@biomed-academy.org',
+    organization: 'BioMed Honors Academy',
+    roleTitle: 'Curriculum Lead',
+    tier: 'Department',
+    phone: '+1 (617) 555-0114',
+    status: 'Active',
+    createdAt: '2026-11-14T11:00:00Z',
+  },
+  {
+    id: 4,
+    name: 'Liam O’Connor',
+    email: 'loconnor@dublin-poly.ie',
+    organization: 'Dublin Polytechnic',
+    roleTitle: 'IT & SSO Administrator',
+    tier: 'Enterprise',
+    phone: '+353 1 555 0198',
+    status: 'Onboarding',
+    createdAt: '2026-11-18T16:45:00Z',
+  },
+];
+
+export const INITIAL_CUSTOMER_RESPONSES: CustomerResponseItem[] = [
+  {
+    id: 1,
+    customerId: 2,
+    subject: 'SSO SAML Metadata Rotation & Roster Sync Delay',
+    queryText:
+      'Our Spring 2025 Canvas roster sync stalled for 48 students in CS301 after our university rotated the SAML signing certificate this morning. Can you help re-bind our IdP metadata?',
+    responseText: '',
+    status: 'Pending',
+    priority: 'High',
+    channel: 'Support Portal',
+    assignedAgent: 'Alex Vance',
+    createdAt: '2026-11-20T18:10:00Z',
+    updatedAt: '2026-11-20T18:10:00Z',
+    respondedAt: null,
+    historyJson: [
+      {
+        id: 'h1',
+        actor: 'Marcus Sterling',
+        role: 'customer',
+        message: 'Submitted urgent ticket regarding SAML metadata rotation affecting CS301 sync.',
+        timestamp: '2026-11-20 18:10',
+      },
+      {
+        id: 'h2',
+        actor: 'EduTrack Triage',
+        role: 'system',
+        message: 'Assigned priority High and routed to Integrations Team.',
+        timestamp: '2026-11-20 18:11',
+      },
+    ],
+  },
+  {
+    id: 2,
+    customerId: 1,
+    subject: 'Custom Grading Rubric Weights for Multi-Section Labs',
+    queryText:
+      'Can department heads clone rubric templates across Section A and Section B while preserving independent grace-window penalties?',
+    responseText:
+      'Yes! In Faculty View, open the CS301 assignment card and select Edit Rubric. Any saved rubric template can be applied per section while keeping independent grace-window cutoff timers.',
+    status: 'Responded',
+    priority: 'Medium',
+    channel: 'Email',
+    assignedAgent: 'Dr. Clara Vance',
+    createdAt: '2026-11-19T15:20:00Z',
+    updatedAt: '2026-11-19T16:05:00Z',
+    respondedAt: '2026-11-19T16:05:00Z',
+    historyJson: [
+      {
+        id: 'h3',
+        actor: 'Dr. Maya Lin',
+        role: 'customer',
+        message: 'Asked about cloning multi-section grading rubrics with independent grace windows.',
+        timestamp: '2026-11-19 15:20',
+      },
+      {
+        id: 'h4',
+        actor: 'Dr. Clara Vance',
+        role: 'agent',
+        message: 'Provided walkthrough for Faculty View rubric template cloning and per-section timers.',
+        timestamp: '2026-11-19 16:05',
+      },
+    ],
+  },
+  {
+    id: 3,
+    customerId: 3,
+    subject: 'Study Hub PDF LaTeX Formula Extraction Accuracy',
+    queryText:
+      'Our BIO110 Enzyme Kinetics lab PDFs contain subscripted Michaelis-Menten equations. Can we verify LaTeX copy output for students?',
+    responseText:
+      'Confirmed—the Study Hub synthesis engine preserves subscripted chemical & kinetic notation (v₀, K_m, V_max) and enables one-click LaTeX copying in the Formulas panel.',
+    status: 'Resolved',
+    priority: 'Low',
+    channel: 'Live Chat',
+    assignedAgent: 'Alex Vance',
+    createdAt: '2026-11-17T10:00:00Z',
+    updatedAt: '2026-11-17T11:15:00Z',
+    respondedAt: '2026-11-17T10:25:00Z',
+    historyJson: [
+      {
+        id: 'h5',
+        actor: 'Priya Nair',
+        role: 'customer',
+        message: 'Requested verification of subscripted enzyme kinetics formula extraction.',
+        timestamp: '2026-11-17 10:00',
+      },
+      {
+        id: 'h6',
+        actor: 'Alex Vance',
+        role: 'agent',
+        message: 'Tested BIO110_Enzyme_Kinetics_Guide.pdf and confirmed clean LaTeX extraction.',
+        timestamp: '2026-11-17 10:25',
+      },
+      {
+        id: 'h7',
+        actor: 'Priya Nair',
+        role: 'customer',
+        message: 'Verified on our end—works cleanly for our cohort. Marking resolved!',
+        timestamp: '2026-11-17 11:15',
+      },
+    ],
+  },
+  {
+    id: 4,
+    customerId: 4,
+    subject: 'Bulk Onboarding 240 Engineering Students via CSV',
+    queryText:
+      'We are preparing our January intake and need the column header specification for bulk student enrollment import.',
+    responseText: '',
+    status: 'Pending',
+    priority: 'Medium',
+    channel: 'Email',
+    assignedAgent: 'Alex Vance',
+    createdAt: '2026-11-20T12:40:00Z',
+    updatedAt: '2026-11-20T12:40:00Z',
+    respondedAt: null,
+    historyJson: [
+      {
+        id: 'h8',
+        actor: 'Liam O’Connor',
+        role: 'customer',
+        message: 'Requested CSV schema for bulk onboarding 240 engineering students.',
+        timestamp: '2026-11-20 12:40',
+      },
+    ],
+  },
+];
 
 export const INITIAL_COURSES: CourseItem[] = [
   {
@@ -702,62 +990,104 @@ export const INITIAL_DOCUMENTS: StudyDocumentItem[] = [
 export const INITIAL_CHAT_SESSIONS: ChatSessionItem[] = [
   {
     id: 1,
-    title: 'Raft Log Compaction & Split-Vote Prevention',
+    title: 'Academic Overview & Attendance Plan',
     courseScopeJson: ['CS301', 'MATH240', 'BIO110', 'ENG205'],
-    deepReasoning: true,
-    dateLabel: 'Yesterday',
+    deepReasoning: false,
+    dateLabel: 'Today',
     messages: [
       {
         id: 1,
         sessionId: 1,
         role: 'assistant',
-        badgeLabel: 'Course Synthesizer',
+        badgeLabel: 'EduTrack AI Assistant',
         timeLabel: '09:14 AM',
         content:
-          "Good morning, Alex! I've synthesized your syllabi, code submissions, and upcoming milestone deliverables.\n\n• **CS301 Lab 2: Raft Consensus** — Grace: 23h remaining\n• **MATH240 Midterm 2** — In 4 days\n\nHow would you like to direct our focus today? We can dive straight into your distributed consensus edge cases, run eigenvalue proof exercises, or format your technical lab report.",
+          "Hi Alex! I'm **EduTrack AI Assistant**, connected to your Spring 2025 courses, attendance, marks, and deadlines.\n\n- **Current CGPA:** `3.56 / 4.00` across 15 credits\n- **Attendance Alert:** **BIO110 (Cell Biology)** is at **67.9%** (`19 / 28` classes) — attending your next **8** consecutive classes brings you back to **75%**\n- **Priority Task:** **CS301 Distributed Consensus & Raft Protocol** (`23h 14m` grace remaining)\n\nUse any quick suggestion above or ask me about your attendance, marks, study schedule, or course topics!",
+        navActionsJson: [
+          { label: 'View Attendance & CGPA', nav: 'analytics' },
+          { label: 'Open Assignments', nav: 'assignments' },
+          { label: 'Go to Dashboard', nav: 'dashboard' },
+        ],
       },
+    ],
+  },
+  {
+    id: 2,
+    title: 'CS301 Raft Leader Election & Timer Invariants',
+    courseScopeJson: ['CS301'],
+    deepReasoning: true,
+    dateLabel: 'Yesterday',
+    messages: [
       {
         id: 2,
-        sessionId: 1,
+        sessionId: 2,
         role: 'user',
         badgeLabel: 'Student',
         timeLabel: '09:16 AM',
         content:
-          "I'm struggling with the leader election split-vote condition in my CS301 Raft implementation. Can you explain why randomized election timeouts prevent split-vote deadlocks and give me a concrete pseudo-code example with 3 nodes?",
+          "I'm struggling with the leader election split-vote condition in my CS301 Raft implementation. Can you explain why randomized election timeouts prevent split-vote deadlocks and show a complete RequestVote + timer reset example?",
       },
       {
         id: 3,
-        sessionId: 1,
+        sessionId: 2,
         role: 'assistant',
         badgeLabel: 'Deep Reasoning Breakdown',
         timeLabel: '09:16 AM',
         content:
-          '### 1. The Core Problem: Split-Vote Livelock\nIn a 3-node cluster (**Node A, Node B, Node C**), if all nodes use the exact same static election timeout (e.g., exactly 200ms), they will time out simultaneously when the current leader crashes. Both Node A and Node B become Candidates at term `T+1` and vote for themselves. Each sends `RequestVoteArgs` to Node C.\n\n> Node A receives 1 vote (itself), Node B receives 1 vote (itself), Node C votes for whichever arrived first. Neither candidate gathers the majority quorum of **2 votes**. Without randomization, they would repeat this simultaneously indefinitely.\n\n### 2. The Mathematical Insight: Symmetry Breaking\nRaft introduces randomized election timeouts typically sampled uniformly from `[150ms, 300ms]`. Because node timeout offsets diverge by up to 150ms (orders of magnitude larger than typical LAN RPC latency of ~1ms), one node will almost always time out first, increment its term, and collect votes before peers finish their timers.',
+          '### 1. The Core Problem: Split-Vote Livelock\nIn a 3-node cluster (**Node A, Node B, Node C**), if all nodes use the exact same static election timeout (e.g., exactly 200ms), they time out simultaneously when the leader crashes. Both Node A and Node B become Candidates at term `T+1` and vote for themselves, leaving neither with a majority quorum of **2 votes**.\n\n### 2. Symmetry Breaking & Safe Timer Resets\nSampling randomized timeouts uniformly from `[150ms, 300ms]` lets one candidate time out first and collect quorum before peers expire. Equally important, `RequestVote` must **only** reset the follower election timer when a vote is actually granted (never unconditionally upon receiving the RPC).',
         codeSnippet: `func (rf *Raft) resetElectionTimer() {
-    // 1. Generate randomized duration between 150ms and 300ms
-    randTimeout := 150 + rand.Intn(150)
+    // 1. Sample randomized duration in [150ms, 300ms] inclusive
+    randTimeout := 150 + rand.Intn(151)
     timeoutDuration := time.Duration(randTimeout) * time.Millisecond
 
     if rf.electionTimer != nil {
         rf.electionTimer.Stop()
     }
 
-    // 2. Reset timer to fire election transition on expiry
+    // 2. Capture epoch token so stale timer callbacks cannot start a spurious election
+    rf.electionEpoch++
+    expectedEpoch := rf.electionEpoch
+
     rf.electionTimer = time.AfterFunc(timeoutDuration, func() {
         rf.mu.Lock()
         defer rf.mu.Unlock()
-        if rf.state != Leader {
-            rf.startElection() // Transitions to Candidate & requests votes
+        if !rf.killed() && rf.electionEpoch == expectedEpoch && rf.state != Leader {
+            rf.startElection() // Transitions to Candidate & sends RequestVote RPCs
         }
     })
+}
+
+func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
+    rf.mu.Lock()
+    defer rf.mu.Unlock()
+
+    if args.Term < rf.currentTerm {
+        reply.Term = rf.currentTerm
+        reply.VoteGranted = false
+        return
+    }
+    if args.Term > rf.currentTerm {
+        rf.becomeFollowerLocked(args.Term)
+    }
+
+    reply.Term = rf.currentTerm
+    canVote := rf.votedFor == -1 || rf.votedFor == args.CandidateId
+    if canVote && rf.isLogAtLeastAsUpToDateLocked(args.LastLogIndex, args.LastLogTerm) {
+        rf.votedFor = args.CandidateId
+        rf.persist()
+        reply.VoteGranted = true
+        rf.resetElectionTimer() // Only reset timer when vote is actually granted
+    } else {
+        reply.VoteGranted = false
+    }
 }`,
         gotchaTip:
-          "Common CS301 Exam & Implementation Gotcha: Never reset a node's election timer simply because it receives a RequestVote RPC! You must only reset the election timer if you actually grant the vote, or if you receive a valid heartbeat from the legitimate current Leader.",
+          'Key Invariant: Reset the election timer only when you actually grant a vote in RequestVote, or when you accept a valid AppendEntries heartbeat from the current-term Leader.',
       },
     ],
   },
   {
-    id: 2,
+    id: 3,
     title: 'Diagonalization Proofs & Symmetric Matrices',
     courseScopeJson: ['MATH240'],
     deepReasoning: true,
@@ -765,7 +1095,7 @@ export const INITIAL_CHAT_SESSIONS: ChatSessionItem[] = [
     messages: [
       {
         id: 4,
-        sessionId: 2,
+        sessionId: 3,
         role: 'assistant',
         badgeLabel: 'Course Synthesizer',
         timeLabel: '03:10 PM',
@@ -775,7 +1105,7 @@ export const INITIAL_CHAT_SESSIONS: ChatSessionItem[] = [
     ],
   },
   {
-    id: 3,
+    id: 4,
     title: 'Cellular ATP Yield & Spectrophotometry',
     courseScopeJson: ['BIO110'],
     deepReasoning: false,
@@ -783,7 +1113,7 @@ export const INITIAL_CHAT_SESSIONS: ChatSessionItem[] = [
     messages: [
       {
         id: 5,
-        sessionId: 3,
+        sessionId: 4,
         role: 'assistant',
         badgeLabel: 'Course Synthesizer',
         timeLabel: '11:20 AM',
